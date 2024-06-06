@@ -1,65 +1,39 @@
 package it.unisa.control;
 
 import java.io.IOException;
-import java.sql.Date;
 import java.sql.SQLException;
-import java.util.ArrayList;
-
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.mindrot.jbcrypt.BCrypt;
+import it.unisa.model.UserBean;
+import it.unisa.model.UserDao;
 
-import it.unisa.model.*;
+@WebServlet("/Register")
+public class RegisterServlet extends HttpServlet {
+    private static final long serialVersionUID = 1L;
 
-/**
- * Servlet implementation class RegistraziomeServlet
- */
-@WebServlet("/Registrazione")
-public class RegistrazioneServlet extends HttpServlet {
-	private static final long serialVersionUID = 1L;
-    
-	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		doPost(request, response);
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String username = request.getParameter("username");
+        String password = request.getParameter("password");
 
-	}
+        // Hash the password
+        String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
 
-	
-	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		
-		UserDao dao = new UserDao();
-		String nome = request.getParameter("nome");
-		String cognome = request.getParameter("cognome");
-		String email = request.getParameter("email");
-		String dataNascita = request.getParameter("nascita");
-		String username = request.getParameter("us");
-		String pwd = request.getParameter("pw");
+        // Save username and hashed password to the database
+        UserDao userDao = new UserDao();
+        UserBean user = new UserBean();
+        user.setUsername(username);
+        user.setPassword(hashedPassword);
 
-        String[] parti = dataNascita.split("-");
-        dataNascita = parti[2] + "-" + parti[1] + "-" + parti[0];
-		
-		try {
-			
-			UserBean user = new UserBean();
-			user.setNome(nome);
-			user.setCognome(cognome);
-			user.setEmail(email);
-			user.setDataDiNascita(Date.valueOf(dataNascita));
-			user.setUsername(username);
-			user.setPassword(pwd);
-			user.setAmministratore(false);
-			user.setCap(null);
-			user.setIndirizzo(null);
-			user.setCartaDiCredito(null);
-			dao.doSave(user);
-			
-		}catch(SQLException e) {
-			System.out.println("Error:" + e.getMessage());
-		}
-				
-		response.sendRedirect(request.getContextPath() + "/Home.jsp");
-
-	}
-
+        try {
+            userDao.saveUser(user);
+            response.sendRedirect("login.jsp");
+        } catch (SQLException e) {
+            e.printStackTrace();
+            response.sendRedirect("error.jsp");
+        }
+    }
 }
